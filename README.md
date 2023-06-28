@@ -10,3 +10,7 @@
 
 **Training logs**: `output/logs/` 
 - TensorBoard training logs from different experiments
+
+
+# Getting Started
+- `python3.8.10`
