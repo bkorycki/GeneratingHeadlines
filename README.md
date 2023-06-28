@@ -6,8 +6,7 @@
 	- `target = 'description'` given a title, generate the description
 	- `target = 'title'` given the description, generate a headline
 
-**Generation script**
-- `generate.ipynb` 
+**Generation script**: `generate.ipynb` 
 
-**Output** 
-- `output/logs/` TensorBoard training logs from different experiments
+**Training logs**: `output/logs/` 
+- TensorBoard training logs from different experiments
