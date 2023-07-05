@@ -6,13 +6,42 @@ from unidecode import unidecode
 import numpy as np
 
 
-class NewsDataset(Dataset):
+class SimpleNewsDataset(Dataset):
+	"""
+	Dataset consisting of article descriptions
+	"""
+
+	def __init__(self, df, tokenizer):
+		BOS = tokenizer.bos_token
+		EOS = tokenizer.eos_token
+
+		self.token_ids = []
+		self.attn_masks = []
+
+		max_len = max(df.description_tokens.map(len))
+		
+		for _, desc in df['description'].items():
+			text = BOS + desc + EOS
+			encodings_dict = tokenizer(text, truncation=True, max_length=max_len, padding="max_length")
+
+			self.token_ids.append(torch.tensor(encodings_dict['input_ids']))
+			self.attn_masks.append(torch.tensor(encodings_dict['attention_mask']))
+			
+	def __len__(self):
+		return len(self.token_ids)
+
+	def __getitem__(self, idx):
+		return self.token_ids[idx], self.attn_masks[idx] 
+
+
+class ContextualNewsDataset(Dataset):
 
 	def __init__(self, df, tokenizer, target):
-		""" Args:
-				df: dataframe
-				tokenizer: tokenizer used for df
-				target: 'desc' | 'tite' 
+		""" 
+		Dataset for contextual text generation. 
+		-target: 
+			'desc': For generating an article description given it's title
+			'title': For generating a title description given it's description
 		"""
 		BOS = tokenizer.bos_token
 		SEP = tokenizer.sep_token
@@ -38,6 +67,7 @@ class NewsDataset(Dataset):
 		token_ids = torch.tensor(self.token_ids[idx])
 		sample = {'token_ids': token_ids, 'sep_pos': self.sep_pos[idx]}
 		return sample
+
 
 def get_data(tokenizer, contextual=True):
 	"""
