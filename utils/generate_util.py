@@ -1,6 +1,29 @@
 import torch
 import torch.nn.functional as F
 
+
+def generate_sample(data, tokenizer, model, num=1, length=20, temperature=1, top_k=0, top_p=0.5, device=torch.device('cuda')):
+    # Set seed in between subsequent calls for reproducibility
+    torch.manual_seed(42) 
+    torch.use_deterministic_algorithms(False)
+
+    for i in range(num):
+        print("*"*50)
+        sample = data[i+3]
+        idx = sample['sep_pos']
+
+        context = sample['token_ids'][:idx].tolist()
+        target = sample['token_ids'][idx+1:][:100].tolist()
+
+        generated_tokens = sample_seq(model, context, length, device, temperature, top_k, top_p)
+        generated_tokens = generated_tokens[0, idx:].tolist()
+        generated_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+
+        print('CONTEXT:\n', tokenizer.decode(context, skip_special_tokens=True))
+        print("\nGENERATED TEXT:\n", generated_text)
+        print('TRUE TARGET:\n', tokenizer.decode(target,skip_special_tokens=True),"   \n")
+
+
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
     """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
         Args:
@@ -57,6 +80,22 @@ def sample_seq(model, context, length, device, temperature=1, top_k=0, top_p=0.0
             generated = torch.cat((generated, next_token.unsqueeze(0)), dim=1)
     return generated
 
+def generate_beam_sample(data, tokenizer, model, num=1, length=20, beam_size=3, device=torch.device('cuda')):
+    for i in range(num):
+        sample = data[i]
+        idx = sample['sep_pos']
+        context = sample['token_ids'][:idx].tolist()
+        summary = sample['token_ids'][idx+1:][:100].tolist()
+        scores, sequences = beam_search(model, context, length, beam_size, device)
+        print('description', end='\n\n')
+        print(tokenizer.decode(context[:-1]), end='\n\n')
+        # print('actual_summary', end='\n\n')
+        # print(tokenizer.decode(summary), end='\n\n')
+        for i in range(len(sequences)):
+            text = tokenizer.convert_ids_to_tokens(sequences[i],skip_special_tokens=True)
+            text = tokenizer.convert_tokens_to_string(text)  
+            print("generated_summary-{} and Score is {}.".format(i+1, scores[i]), end='\n\n')
+            print(text, end='\n\n')
 
 def beam_search(model, context, length, beam_size, device, temperature=1):
     """ Generate sequence using beam search https://machinelearningmastery.com/beam-search-decoder-natural-language-processing/
