@@ -1,0 +1,4 @@
+*.pyc
+*pycache*
+.DS_Store
+*.pt
