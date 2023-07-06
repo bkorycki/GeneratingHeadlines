@@ -69,7 +69,7 @@ class ContextualNewsDataset(Dataset):
 		return sample
 
 
-def get_data(tokenizer, contextual=True):
+def load_dataframe(tokenizer, contextual=True):
 	"""
 		If contextual=false, only keep 'description'
 	"""
