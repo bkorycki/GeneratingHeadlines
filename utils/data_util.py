@@ -4,6 +4,8 @@ import pandas as pd
 import re, html, unicodedata
 from unidecode import unidecode
 import numpy as np
+from sklearn.model_selection import train_test_split
+from typing import List
 
 
 class SimpleNewsDataset(Dataset):
@@ -17,6 +19,7 @@ class SimpleNewsDataset(Dataset):
 
 		self.token_ids = []
 		self.attn_masks = []
+		self.df = df
 
 		max_len = max(df.description_tokens.map(len))
 		
@@ -36,12 +39,12 @@ class SimpleNewsDataset(Dataset):
 
 class ContextualNewsDataset(Dataset):
 
-	def __init__(self, df, tokenizer, target):
+	def __init__(self, df, tokenizer, target: str):
 		""" 
 		Dataset for contextual text generation. 
 		-target: 
 			'desc': For generating an article description given it's title
-			'title': For generating a title description given it's description
+			'title': For generating a title given it's description
 		"""
 		BOS = tokenizer.bos_token
 		SEP = tokenizer.sep_token
@@ -56,21 +59,42 @@ class ContextualNewsDataset(Dataset):
 		tokens = df.apply(lambda x:  x[context_tokens] + [SEP] + x[target_tokens] + [BOS], axis=1)
 		max_len = max(tokens.map(len))
 		tokens = tokens.apply(lambda x: x + [PAD]* (max_len-len(x)))
-
+		
+		self.df = df
 		self.token_ids = list(tokens.map(tokenizer.convert_tokens_to_ids))
 		self.sep_pos = list(df[context_tokens].map(len))
 
 	def __len__(self):
 		return len(self.token_ids)
 
-	def __getitem__(self,idx):  
+	def __getitem__(self, idx):  
 		token_ids = torch.tensor(self.token_ids[idx])
 		sample = {'token_ids': token_ids, 'sep_pos': self.sep_pos[idx]}
 		return sample
 
 
+def get_datasets(config, tokenizer) -> List[Dataset]:
+	""" Returns [train_dataset, val_dataset, test_dataset] based on split defined in config."""
+	if config.get("TARGET_TYPE"):
+		df = load_dataframe(tokenizer)
+	else:
+		df = load_dataframe(tokenizer, contextual=False)
+	# Split data
+	df_train, df_test = train_test_split(df, train_size=int(config["TRAIN_SPLIT"]*len(df)), random_state=config["RANDOM_SEED"])
+	df_test, df_val = train_test_split(df_test, train_size=int(config["TEST_SPLIT"]*len(df)), random_state=config["RANDOM_SEED"])
+
+	datasets = []
+	for sub_df in [df_train, df_val, df_test]:
+		if config.get("TARGET_TYPE"):
+			dataset = ContextualNewsDataset(sub_df, tokenizer, config["TARGET_TYPE"])
+		else:
+			dataset = SimpleNewsDataset(sub_df, tokenizer)
+		datasets.append(dataset)
+	return datasets
+
+
 def load_dataframe(tokenizer, contextual=True):
-	"""
+	""" Loads and cleans data.
 		If contextual=false, only keep 'description'
 	"""
 	# Load data frame
@@ -95,7 +119,7 @@ def load_dataframe(tokenizer, contextual=True):
 	print(f"{len(df)} samples after cleaning")
 	return  df
 
-def normalize_text(text, form='NFC'):
+def normalize_text(text, form='NFC') -> str:
 	# Remove URLs
 	text = re.sub(r'https?://\S+|www\.\S+', '', text)
 	# Normalize 

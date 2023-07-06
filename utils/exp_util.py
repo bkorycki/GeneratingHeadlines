@@ -1,4 +1,5 @@
 import os
+import yaml 
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
@@ -33,6 +34,7 @@ def load_model(model_path, tokenizer, size):
 
 	return model
 
+
 def get_pretrained_name(size):
 	if size == "small":
 		gpt_type = 'gpt2'
@@ -50,3 +52,7 @@ def setup_exp_folders(experiment_name):
 	os.mkdir(model_dir)
 	return log_dir, model_dir
 
+def load_config(experiment_name):
+	with open(f"./config/{experiment_name}.yaml", 'r') as file:
+		config = yaml.safe_load(file)
+	return config
