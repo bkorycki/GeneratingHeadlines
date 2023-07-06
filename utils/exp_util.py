@@ -4,16 +4,15 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
-def get_tokenizer(size: str):
-	BOS = '<|endoftext|>'
-	PAD = '<|pad|>'
-	SEP = '<|sep|>'
-
-	special_tokens_dict = {'sep_token': SEP, 'pad_token': PAD, 'bos_token': BOS}
+def get_tokenizer(size: str, contextual=True):
+	if contextual:
+		special_tokens_dict = {'sep_token': '<|sep|>', 'pad_token': '<|pad|>', 'bos_token': '<|endoftext|>'}
+	else:
+		special_tokens_dict = {'pad_token': '<|pad|>', 'bos_token': '<|startoftext|>', 'eos_token': '<|endoftext|>'}
 
 	gpt_type = get_pretrained_name(size)	
 	tokenizer = GPT2Tokenizer.from_pretrained(gpt_type)
-	num_add_toks = tokenizer.add_special_tokens(special_tokens_dict)
+	tokenizer.add_special_tokens(special_tokens_dict)
 	return tokenizer
 
 
