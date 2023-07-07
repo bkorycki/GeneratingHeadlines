@@ -2,3 +2,4 @@
 *pycache*
 .DS_Store
 *.pt
+.python-version
