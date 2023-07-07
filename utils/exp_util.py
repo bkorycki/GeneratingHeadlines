@@ -4,7 +4,7 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
-def get_tokenizer(size: str, contextual=True):
+def get_tokenizer(size: str='small', contextual=True):
 	if contextual:
 		special_tokens_dict = {'sep_token': '<|sep|>', 'pad_token': '<|pad|>', 'bos_token': '<|endoftext|>'}
 	else:
@@ -16,7 +16,7 @@ def get_tokenizer(size: str, contextual=True):
 	return tokenizer
 
 
-def init_model(tokenizer, size: str):
+def init_model(tokenizer, size: str='small'):
 	gpt_name = get_pretrained_name(size)	
 	model = GPT2LMHeadModel.from_pretrained(gpt_name)
 	model.resize_token_embeddings(len(tokenizer))
